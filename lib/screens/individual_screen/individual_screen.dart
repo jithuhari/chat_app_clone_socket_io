@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:whatts_app/model/chat_model/chat_model.dart';
 import 'package:whatts_app/widgets/own_message_card/own_message_card.dart';
+import 'package:whatts_app/widgets/reply_card/reply_card.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 // import 'package:flutter/foundation.dart' as foundation;
 
 class IndividualPage extends StatefulWidget {
-  const IndividualPage({super.key, required this.chatModel});
+  const IndividualPage(
+      {super.key, required this.chatModel, required this.sourceChat});
 
   final ChatModel chatModel;
+  final ChatModel sourceChat;
 
   @override
   State<IndividualPage> createState() => _IndividualPageState();
@@ -17,16 +21,41 @@ class IndividualPage extends StatefulWidget {
 class _IndividualPageState extends State<IndividualPage> {
   bool isEmojiShow = false;
   FocusNode focusNode = FocusNode();
+  IO.Socket? socket;
+  bool sendButton = false;
+
   TextEditingController textController = TextEditingController();
   @override
   void initState() {
     super.initState();
+    connect();
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         setState(() {
           isEmojiShow = false;
         });
       }
+    });
+  }
+
+  void connect() {
+    socket = IO.io("http://192.168.1.85:5000", <String, dynamic>{
+      "transports": ["websocket"],
+      "autoConnect": false,
+    });
+    socket!.connect();
+    socket!.emit("signin", widget.sourceChat.id);
+    socket!.onConnect(
+      (data) => debugPrint("Connected"),
+    );
+    print(socket!.connected);
+  }
+
+  void sendMessage(String message, int sourceId, int targetId) {
+    socket!.emit("message", {
+      "message": message,
+      "sourceId": sourceId,
+      "targetId": targetId,
     });
   }
 
@@ -158,8 +187,29 @@ class _IndividualPageState extends State<IndividualPage> {
               },
               child: Stack(
                 children: [
-                  ListView(
-                    children: const [OwnMessageCard()],
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height - 180,
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: const [
+                        OwnMessageCard(),
+                        ReplyCard(),
+                        OwnMessageCard(),
+                        ReplyCard(),
+                        OwnMessageCard(),
+                        ReplyCard(),
+                        OwnMessageCard(),
+                        ReplyCard(),
+                        OwnMessageCard(),
+                        ReplyCard(),
+                        OwnMessageCard(),
+                        ReplyCard(),
+                        OwnMessageCard(),
+                        ReplyCard(),
+                        OwnMessageCard(),
+                        ReplyCard(),
+                      ],
+                    ),
                   ),
                   Align(
                     alignment: Alignment.bottomCenter,
@@ -176,6 +226,17 @@ class _IndividualPageState extends State<IndividualPage> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(25)),
                                 child: TextFormField(
+                                  onChanged: (value) {
+                                    if (value.isNotEmpty) {
+                                      setState(() {
+                                        sendButton = true;
+                                      });
+                                    } else {
+                                      setState(() {
+                                        sendButton = false;
+                                      });
+                                    }
+                                  },
                                   controller: textController,
                                   focusNode: focusNode,
                                   textAlignVertical: TextAlignVertical.center,
@@ -227,11 +288,25 @@ class _IndividualPageState extends State<IndividualPage> {
                                 backgroundColor: const Color(0xFF128C7E),
                                 radius: 25,
                                 child: IconButton(
-                                    onPressed: () {},
-                                    icon: const Icon(
-                                      Icons.mic,
-                                      color: Colors.white,
-                                    )),
+                                    onPressed: () {
+                                      if (sendButton) {
+                                        sendMessage(
+                                          textController.text,
+                                          widget.sourceChat.id!,
+                                          widget.chatModel.id!,
+                                        );
+                                        textController.clear();
+                                      }
+                                    },
+                                    icon: sendButton == false
+                                        ? const Icon(
+                                            Icons.mic,
+                                            color: Colors.white,
+                                          )
+                                        : const Icon(
+                                            Icons.send,
+                                            color: Colors.white,
+                                          )),
                               ),
                             )
                           ],

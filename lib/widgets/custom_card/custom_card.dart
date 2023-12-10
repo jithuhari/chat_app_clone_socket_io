@@ -4,9 +4,11 @@ import 'package:whatts_app/model/chat_model/chat_model.dart';
 import 'package:whatts_app/screens/individual_screen/individual_screen.dart';
 
 class CustomCard extends StatelessWidget {
-  const CustomCard({super.key, required this.chatModel});
+  const CustomCard({super.key, required this.chatModel, required this.sourceChat});
 
   final ChatModel chatModel;
+  final ChatModel sourceChat;
+
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +18,7 @@ class CustomCard extends StatelessWidget {
             context,
             MaterialPageRoute(
                 builder: (context) => IndividualPage(
-                      chatModel: chatModel,
+                      chatModel: chatModel, sourceChat: sourceChat,
                     )));
       },
       child: Column(
